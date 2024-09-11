@@ -4,7 +4,8 @@ import AVFoundation
 struct ContentView: View {
     @StateObject private var cameraViewModel = CameraViewModel()
     @State private var input = "" // For the text field
-    
+    @State private var isRecording = false
+
     func checkCameraPermission(completion: @escaping (Bool) -> Void) {
         switch AVCaptureDevice.authorizationStatus(for: .video) {
         case .authorized:
@@ -30,18 +31,39 @@ struct ContentView: View {
                     Text("Video Name:")
                     TextField("Enter video name", text: $input)
                 }
-                Button("Record") {
-                    // Add recording logic here (e.g., save videoName, start recording)
+                Button(action: {
+                    if isRecording {
+                        cameraViewModel.stopRecording()
+                    } else {
+                        let filename = "video_\(Date().timeIntervalSince1970)"
+                        cameraViewModel.startRecording(filename: filename)
+                    }
+                    isRecording.toggle()
+                }) {
+                    Text(isRecording ? "Stop Recording" : "Start Recording")
+                        .padding()
+                        .background(Color.red)
+                        .foregroundColor(.white)
+
                 }
                 .buttonStyle(.borderedProminent)
             }
             .padding()
-
+            
+            CameraPreview(cameraViewModel: cameraViewModel)
+                .frame(height: 300)
+                .cornerRadius(10)
+                .border(Color.gray) // Optional: Adds a border to see the preview's bounds
+                .onAppear {
+                            cameraViewModel.setupCamera(isFrontCamera: true) // Or true for front camera
+                        }
+            /*
             // Camera preview section
             CameraPreview(cameraViewModel: cameraViewModel)
                 .frame(height: 300)
                 .cornerRadius(10)
-
+                .border(Color.gray) // Optional: Adds a border to see the preview's bounds
+*/
             Spacer() // Push the camera preview to the top
         }
         .padding()
@@ -49,17 +71,14 @@ struct ContentView: View {
             checkCameraPermission { granted in
                 if granted {
                     cameraViewModel.setupCamera(isFrontCamera: true)
-                    print("Flag1")
-                }
-                else {
-                    print("No access")
+                    print("Camera setup complete")
+                } else {
+                    print("No camera access")
                 }
             }
         }
         .onDisappear {
-            cameraViewModel.stopCamera()
+            cameraViewModel.stopRecording()
         }
     }
 }
-
-// ... (Rest of your code, including CameraViewModel and CameraPreview)
